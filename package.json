@@ -2,7 +2,7 @@
   "name": "ubermodel",
   "version": "1.0.1",
   "description": "",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "author": "Stack & Vault SL",
   "license": "MIT",
   "dependencies": {
