@@ -1,0 +1,10 @@
+{
+    "host": {
+        "name": {
+            "_metadata": {
+                "doc": "hey!"
+            },
+            "value": "Alooo"
+        }
+    }
+}
