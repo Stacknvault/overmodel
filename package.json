@@ -12,7 +12,10 @@
     "node": ">=10"
   },
   "dependencies": {
+    "dot-properties": "^1.0.1",
+    "minimist": "^1.2.5",
     "mustache": "^4.1.0",
+    "walk": "^2.3.14",
     "yaml": "^1.10.0"
   },
   "scripts": {
