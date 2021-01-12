@@ -1,52 +1,8 @@
-// import fs from 'fs';
 import YAML from 'yaml';
 
 import { readFileSync, readdirSync, fstat } from "fs";
 import properties from 'dot-properties';
 
-// const parseJSON = async () => {
-//     const rawData = fs.readFileSync('test/config/model/test.json', 'utf8');
-//     const config = JSON.parse(rawData);
-//     console.log(config);
-//     const mustache = require("mustache");
-//     console.log(mustache.render('{{host.name.value}}', config));
-// }
-
-// const parseYAML = async () => {
-//     const rawData = fs.readFileSync('test/config/model/test.yaml', 'utf8');
-//     const config = YAML.parse(rawData);
-//     console.log(config);
-//     const mustache = require("mustache");
-//     console.log(mustache.render('{{host.name.value}}', config));
-// }
-
-// const object1 = {
-//     name: 'Flavio',
-//     foo: {
-//         bar: 'hey',
-//         baz: 'meh',
-//     }
-//   }
-  
-//   const object2 = {
-//     age: 35,
-//     foo: {
-//         bar: 'hooo',
-//         pla: 'mik',
-//     }
-//   }
-  
-// // Merge a `source` object to a `target` recursively
-// const merge = (target, source) => {
-//     // Iterate through `source` properties and if an `Object` set property to merge of `target` and `source` properties
-//     for (const key of Object.keys(source)) {
-//         if (source[key] instanceof Object) Object.assign(source[key], merge(target[key], source[key]))
-//     }
-
-//     // Join `target` and modified `source`
-//     Object.assign(target || {}, source)
-//     return target
-// }
 let merge = (...objects: {}[]) => {
     let target = {};
     // Merge the object into the target object
@@ -91,17 +47,11 @@ const getOject = (str) => {
     curobj[arr[i]] = '';
     return obj;
 }
-  
-//   const object3 = merge(object1, object2);
-  
-  
-
-// parseJSON();
-// parseYAML();
 
 const validCommands = ['apply'];
 const validConfigExtensions = ['json', 'yaml', 'properties'];
 const isCommandValid = (command) => validCommands.filter(c=>c===command).length===1;
+
 var walk    = require('walk');
 
 interface Arguments {
@@ -132,17 +82,13 @@ const parseProperties = (contents: string) => {
     var result={}
     Object.keys(parsedFile).map(key=>{
         const newKey = key + (key.indexOf('_metadata')<0?'.value':'');
-        console.log(`${key}, ${newKey}`);
         var obj = getOject(newKey);
         eval(`obj.${newKey}=\"${parsedFile[key]}\"`)
-        console.log('object gotten', JSON.stringify(obj));
-        console.log('merging with', JSON.stringify(result));
         result=merge(result, obj);
     });
     return result;
 }
 const apply = async (args: Arguments) => {
-    console.log('Applying configuration');
     const modelDirs = args['model-dir'];
     const rules = args.rule||[];
     if (!modelDirs || modelDirs.length === 0){
@@ -163,7 +109,6 @@ const apply = async (args: Arguments) => {
         }
         return file1.file.localeCompare((item2 as ModelFile).file)
     });
-    console.log(files);
     const configuration = files
     .filter(item=>{
         // we see if the rules apply
@@ -171,12 +116,10 @@ const apply = async (args: Arguments) => {
         if (remainingFile.indexOf('/')<0){
             return true;
         }
-        console.log('The remaining file was', remainingFile);
         rules.map((rule:string)=>{
             remainingFile=remainingFile.replace(rule.replace(/=/gi, '/'), '');
         });
         const matches = remainingFile.startsWith('.') && validConfigExtensions.filter(item=>item===remainingFile.substring(1)).length>0;
-        console.log('The remaining file is', remainingFile, matches);
         return matches;
     })
     .map((file)=>{
@@ -201,10 +144,7 @@ const ubermodel = () => {
       return;
     }
     const command=args._[0];
-    // const _=args._;
-    // args = _;
-    
-    console.log('args', args);
+    // console.log('args', args);
 
     if (!isCommandValid(command)){
         console.error('Invalid command');
@@ -213,5 +153,4 @@ const ubermodel = () => {
     }
     eval(command)(args);
 }
-// console.log(JSON.stringify(parseProperties(readFileSync('../poc-config-model/model/environment/staging.properties', 'utf-8')), null, 2))
 ubermodel();
