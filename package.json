@@ -1,6 +1,6 @@
 {
   "name": "ubermodel",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "",
   "author": "Stack & Vault SL",
   "license": "MIT",
@@ -12,6 +12,8 @@
     "node": ">=10"
   },
   "dependencies": {
+    "colors": "^1.4.0",
+    "diff": "^5.0.0",
     "dot-properties": "^1.0.1",
     "minimist": "^1.2.5",
     "mustache": "^4.1.0",
