@@ -56,8 +56,8 @@ const getOject = (str) => {
 
 const validCommands = ['apply'];
 const validConfigExtensions = ['json', 'yaml', 'properties'];
-const configFilesPrefix = '_ubermodel/files';
-const configFilesStatePrefix = '_ubermodel/.files';
+const configFilesPrefix = '_overmodel/files';
+const configFilesStatePrefix = '_overmodel/.files';
 const isCommandValid = (command) => validCommands.filter(c=>c===command).length===1;
 
 var walk    = require('walk');
@@ -256,7 +256,7 @@ const apply = async (args: Arguments) => {
     }
     return 0;
 }
-const ubermodel = async () => {
+const overmodel = async () => {
     
     var args = require('minimist')(process.argv.slice(2)) as Arguments;
     if (args._.length===0){
@@ -280,5 +280,5 @@ const ubermodel = async () => {
         console.log('Configuration successfully applied');
     }
 }
-ubermodel();
+overmodel();
 

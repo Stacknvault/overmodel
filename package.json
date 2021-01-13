@@ -1,12 +1,11 @@
 {
-  "name": "ubermodel",
-  "version": "1.0.8",
+  "name": "overmodel",
+  "version": "1.0.9",
   "description": "",
   "author": "Stack & Vault SL",
   "license": "MIT",
-  "repository": "Stacknvault/ubermodel",
+  "repository": "Stacknvault/overmodel",
   "main": "dist/index.js",
-  "module": "dist/index.modern.jsx",
   "source": "src/index.ts",
   "engines": {
     "node": ">=10"
@@ -24,7 +23,7 @@
     "test": "jest",
     "migration": "echo nix",
     "build": "tsc",
-    "ubermodel": "node dist/index.js",
+    "overmodel": "node dist/index.js",
     "postinstall": "npm run build"
   },
   "devDependencies": {
