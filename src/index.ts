@@ -72,6 +72,10 @@ interface ModelFile {
     root: string;
     file: string;
 }
+interface RenderResult {
+    missingVariables: string[];
+    contentsRendered: string;
+}
 function ensureDirectoryExistence(filePath) {
     var dName = dirname(filePath);
     if (existsSync(dName)) {
@@ -148,9 +152,8 @@ function getConfiguration(files: ModelFile[], rules: string[]) {
         .reduce((previous, current) => merge(previous, current));
 }
 
-function configureFile(file: string, configuration):boolean {
+function renderContent(contents: string, configuration):RenderResult {
     var missingVariables:string[] = [];
-    const contents = readFileSync(file, 'utf-8');
     var contentsRendered = contents;
     // console.log('contents', contents);
     const configMatches = (contents.match(/\{{([^}]+)\}}/g) || []).filter((value, index, self) => self.indexOf(value) === index); // filtering unique
@@ -163,6 +166,19 @@ function configureFile(file: string, configuration):boolean {
         try{
             eval(toEval);
         }catch (e){}
+        // we recursively decode the value itself too
+        var depth=0;
+        while (depth<10 && value.match(/\{{([^}]+)\}}/g)){
+            const valueRender = renderContent(value, configuration);
+            if (valueRender.missingVariables.length > 0){
+                missingVariables.push(...valueRender.missingVariables);
+                break;
+            }else{
+                value = valueRender.contentsRendered;
+            }
+            depth++; 
+        }
+        // END we recursively decode the value itself too
         if (value) {
             try{
                 eval(`contentsRendered = contentsRendered.replace(/${match}/gi, value)`);
@@ -172,14 +188,21 @@ function configureFile(file: string, configuration):boolean {
             missingVariables.push(variable);
         }
     });
+    return {missingVariables, contentsRendered};
+}
+
+function configureFile(file: string, configuration):boolean {
+    const contents = readFileSync(file, 'utf-8');
+    const {missingVariables, contentsRendered} = renderContent(contents, configuration);
     if (missingVariables.length>0){
         console.log('contentsRendered', contentsRendered);
-        console.error(`Can't connfigure ${file}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
+        console.error(`Can't configure ${file}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
         return false;
     }
     const targetFile = file.substring(`${configFilesPrefix}/`.length);
     writeFileSync(targetFile, contentsRendered);
     return true;
+    
 }
 
 const apply = async (args: Arguments) => {
@@ -223,11 +246,6 @@ const apply = async (args: Arguments) => {
         }else {
             const previousFileContents = readFileSync(previousFile, 'utf-8');
             const targetFileContents = readFileSync(targetFile, 'utf-8');
-            // console.log('----')
-            // console.log(previousFileContents);
-            // console.log('----')
-            // console.log(targetFileContents);
-            // console.log('----')
             if (targetFileContents !== previousFileContents && accepts.filter(item=>item===targetFile).length===0){
                 // let's see if we're accepting the file
                 console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Plesae model that file afain under ${configFilesPrefix}`)
@@ -237,7 +255,6 @@ const apply = async (args: Arguments) => {
                 diff.forEach((part) => {
                     // green for additions, red for deletions
                     // grey for common parts
-                    // console.log(JSON.stringify(part, null, 2));
                     const color = part.added ? 'green' :
                       part.removed ? 'red' : 'grey';
                     process.stderr.write(part.value[color]);
