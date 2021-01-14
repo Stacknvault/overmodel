@@ -12,7 +12,7 @@ const validCommands:Command[] = [
     {
         name:'apply',
         flags: [
-            'model-dir', 'rule'
+            'model-dir', 'rule', 'accept'
         ],
     },
 ];
@@ -261,7 +261,7 @@ const apply = async (args: Arguments) => {
             const targetFileContents = readFileSync(targetFile, 'utf-8');
             if (targetFileContents !== previousFileContents && accepts.filter(item=>item===targetFile).length===0){
                 // let's see if we're accepting the file
-                console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Plesae model that file afain under ${configFilesPrefix}`)
+                console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configFilesPrefix}`)
                 require('colors');
                 const Diff = require('diff');
                 const diff = Diff.diffChars(previousFileContents, targetFileContents);
