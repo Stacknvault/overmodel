@@ -241,6 +241,7 @@ So, the script is warning us that there were changes on the configuration and th
     }
 
 And if Jimmy still likes them big:
+
 **model-dir-open/model/environment/test/developer/jimmy.yaml**
 
     favorite.fruit.name=Banana
