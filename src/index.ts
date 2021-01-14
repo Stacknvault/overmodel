@@ -4,6 +4,23 @@ import properties from 'dot-properties';
 import { dirname } from 'path';
 
 // import Mustache from 'mustache';
+interface Command {
+    name: string;
+    flags?: string[];
+};
+const validCommands:Command[] = [
+    {
+        name:'apply',
+        flags: [
+            'model-dir', 'rule'
+        ],
+    },
+];
+const validConfigExtensions = ['json', 'yaml', 'properties'];
+const configFilesPrefix = '_overmodel/files';
+const configFilesStatePrefix = '_overmodel/.files';
+const isCommandValid = (command) => validCommands.filter(c=>c.name===command).length===1;
+const isFlagValid = (command, flag) => validCommands.filter(c=>c.name===command && c.flags && c.flags.filter(f=>f===flag).length>0).length===1;
 
 const usage = () =>{
     console.log('This is how you use this:')
@@ -54,11 +71,6 @@ const getOject = (str) => {
     return obj;
 }
 
-const validCommands = ['apply'];
-const validConfigExtensions = ['json', 'yaml', 'properties'];
-const configFilesPrefix = '_overmodel/files';
-const configFilesStatePrefix = '_overmodel/.files';
-const isCommandValid = (command) => validCommands.filter(c=>c===command).length===1;
 
 var walk    = require('walk');
 
@@ -217,6 +229,7 @@ const apply = async (args: Arguments) => {
     var accepts = args.accept||[]; // the list of files we accept
     accepts = typeof accepts === 'string'?[accepts]:accepts;
     const modelFiles = await getModelFiles(modelDirs);
+    //console.log('modelfiles', JSON.stringify({modelDirs, modelFiles}, null, 2));
     const configuration = await getConfiguration(modelFiles, rules);
     // console.log(JSON.stringify(configuration, null, 2));
 
@@ -289,6 +302,15 @@ const overmodel = async () => {
         usage();
         return;
     }
+    Object.keys(args).map(key=>{
+        if (key!=='_'){
+            if (!isFlagValid(command, key)){
+                console.error( `invalid flag --${key} for the ${command} command`);
+                usage();
+                process.exit(-3);
+            }
+        }
+    })
     const ret = await eval(command)(args);
     if (ret != 0){
         console.error(`There were errors executing ${command} (error ${ret})`);
