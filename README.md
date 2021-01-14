@@ -267,6 +267,7 @@ The resulting `etc/config.json` file:
 Also, if we attempt to use a variable that doesn't exist or that has no value for the given rules, the script will fail. This is convenient for variables that we need to ensure we set up properly for certain scenarios.
 
 Imagine we'd like to define the tool we eat our fruit with, but we want it to be different per environment and we want to force it to be defined for any new environment defined in the future. Then we can define the new variable into the model, but omit it's value:
+
 **model-dir-open/model/model.json**
 
     {
