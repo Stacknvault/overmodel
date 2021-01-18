@@ -6,6 +6,9 @@
  - Separation of sensitive and non sensitive configuration items
  - Separation of concerns. Different parts of the model can be managed by different people
 
+## Installing
+`npm add -g overmodel`
+
 ## Models
 
 *Models* are locations where configuration is held. They can be represented by files. The file types supported are yaml, json and properties.
@@ -118,19 +121,13 @@ Let's now apply the model to that file:
 
     
 
-- myapp
-	- **_overmodel**
+- **config-dir**
+	- **myapp**
 		- **files**
 			- **etc**
 				- **config.json**
-    - src
-    - etc
-	    - config.json
-    - foo
-    - bar
-    - ...
 
-`_overmodel/files/etc/config.json`
+`config-dir/myapp/files/etc/config.json`
 
     {
 	    "myfruitName": "{{favorite.fruit.name}}",
@@ -140,40 +137,17 @@ Let's now apply the model to that file:
 
 ## Applying the configuration
 
-The configuration can be applied with a `nodejs` script provided in this package. To use it, create a `package.json` file or edit the existing one on the application you're trying to model and configure:
+    overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --config-dir ../config-dir/myapp --rule environment=test --rule developer=jimmy
 
-        {
-	    "name": "myapp",
-	    "version": "1.0.0",
-	    "description": "this is my app",
-	    "scripts": {
-		    "overmodel": "node node_modules/overmodel/dist/index.js"
-	    },
-	    "devDependencies": {
-		    "@testing-library/jest-dom": "^5.11.4",
-		    "@testing-library/react": "^11.1.0",
-		    "@testing-library/user-event": "^12.1.10",
-		    "typescript": "^4.1.3"
-	    },
-		    "author": "Jimmy",
-		    "license": "MIT",
-		    "dependencies": {
-		    "overmodel": "^1.0.12"
-	    }
-    }
-To apply the configuration for the test environment for Jimmy:
+This command will inject the configuration variables from the configuration into the model file **`../config-dir/myapp/files/etc/config.json`** and write it into **`etc/config.json`** overwriting it
 
-    yarn overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --rule environment=test --rule developer=jimmy
-
-This command will inject the configuration variables from the configuration into the model file **`_overmodel/files/etc/config.json`** and write it into **`etc/config.json`**
-
-## Subscribing to change on the configuration
+## Subscribing to changes on the configuration
 
 *Overmodel* has a system to detect changes in the configuration files and point us to them in order to eventually model new configuration variables.
 
 Say for instance that Jimmy needs a new configuration variable named _myFruitSize_:
  
-`_overmodel/files/etc/config.json`
+`../config-dir/myapp/files/etc/config.json`
 
     {
 	    "myfruitName": "Apple",
@@ -183,11 +157,11 @@ Say for instance that Jimmy needs a new configuration variable named _myFruitSiz
 
 He said Big because he likes big apples. He pushes the changes and the CI script will attempt to apply the configuration like this:
 
-    yarn overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --rule environment=ci
+    overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --config-dir ../config-dir/myapp --rule environment=ci
 
 The output:
 
-        The contents of etc/config.json changed since last time configuration was applied. Can't continue. Please model that file afain under _overmodel/files
+        The contents of etc/config.json changed since last time configuration was applied. Can't continue. Please model that file afain under ../config-dir/myapp/files
     
     {
     
@@ -232,7 +206,7 @@ So, the script is warning us that there were changes on the configuration and th
         }
     }
 
-`_overmodel/files/etc/config.json`
+`../config-dir/myapp/files/etc/config.json`
 
     {
 	    "myfruitName": "{{favorite.fruit.name}}",
@@ -251,7 +225,7 @@ And if Jimmy still likes them big:
 
 Now we retry to apply the configuration. For that, we will also accept the changes as we do it with the `--accept etc/config.json` flag:
 
-    yarn overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --rule environment=ci --accept etc/config.json
+    overmodel apply --model-dir ../model-dir-open/model --model-dir ../model-dir-sensitive/model --config-dir ../config-dir/myapp --rule environment=ci --accept etc/config.json
 
 Now the output will be:
 

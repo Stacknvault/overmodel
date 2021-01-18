@@ -27,6 +27,12 @@ const isCommandValid = (command) => validCommands.filter(c=>c.name===command).le
 const isFlagValid = (command, flag) => validCommands.filter(c=>c.name===command && c.flags && c.flags.filter(f=>f===flag).length>0).length===1;
 
 const usage = () =>{
+    // const openBrowser = require('react-dev-utils/openBrowser');
+    console.log('Usage:\n');
+    console.log('overmodel apply --model-dir <model directory 1> --model-dir <model directory 2> ... [--config-dir <config directory for the application you are configuring. It defaults to _overmodel] [--rule <rule name 1>=<rule value 1> --rule <rule name 2>=<rule value 2>, ...] [--accept <file to explicitly accept for configuration changes>]');
+    console.log('\nTo get this help:\n');
+    console.log('overmodel help');
+    console.log('\nPlease visit https://www.npmjs.com/package/overmodel for more details\n');
 }
 
 let merge = (...objects: {}[]) => {
