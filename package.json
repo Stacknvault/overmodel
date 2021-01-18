@@ -1,6 +1,6 @@
 {
   "name": "overmodel",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "",
   "author": "Stack & Vault SL",
   "license": "MIT",
@@ -20,7 +20,7 @@
     "yaml": "^1.10.0"
   },
   "bin": {
-    "overmodel": "./dist/index.js"
+    "overmodel": "dist/index.js"
   },
   "scripts": {
     "test": "jest",
