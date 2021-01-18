@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import YAML from 'yaml';
 import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from "fs";
 import properties from 'dot-properties';
@@ -12,18 +13,20 @@ const validCommands:Command[] = [
     {
         name:'apply',
         flags: [
-            'model-dir', 'rule', 'accept'
+            'model-dir', 'config-dir', 'rule', 'accept'
         ],
+    },
+    {
+        name:'help',
     },
 ];
 const validConfigExtensions = ['json', 'yaml', 'properties'];
-const configFilesPrefix = '_overmodel/files';
-const configFilesStatePrefix = '_overmodel/.files';
+// const configFilesPrefix = '_overmodel/files';
+// const configFilesStatePrefix = '_overmodel/.files';
 const isCommandValid = (command) => validCommands.filter(c=>c.name===command).length===1;
 const isFlagValid = (command, flag) => validCommands.filter(c=>c.name===command && c.flags && c.flags.filter(f=>f===flag).length>0).length===1;
 
 const usage = () =>{
-    console.log('This is how you use this:')
 }
 
 let merge = (...objects: {}[]) => {
@@ -137,8 +140,8 @@ async function getModelFiles(modelDirs: string[]) {
             return file1.file.localeCompare((item2 as ModelFile).file);
         }) as ModelFile[];
 }
-async function getConfigurationFiles() {
-    return  await walkDir(configFilesPrefix) as string[];
+async function getConfigurationFiles(configDir: string) {
+    return  await walkDir(`${configDir}/files`) as string[];
 }
 function getConfiguration(files: ModelFile[], rules: string[]) {
     return files
@@ -203,7 +206,7 @@ function renderContent(contents: string, configuration):RenderResult {
     return {missingVariables, contentsRendered};
 }
 
-function configureFile(file: string, configuration):boolean {
+function configureFile(configDir: string, file: string, configuration):boolean {
     const contents = readFileSync(file, 'utf-8');
     const {missingVariables, contentsRendered} = renderContent(contents, configuration);
     if (missingVariables.length>0){
@@ -211,20 +214,27 @@ function configureFile(file: string, configuration):boolean {
         console.error(`Can't configure ${file}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
         return false;
     }
-    const targetFile = file.substring(`${configFilesPrefix}/`.length);
+    const targetFile = file.substring(`${configDir}/files/`.length);
     writeFileSync(targetFile, contentsRendered);
     return true;
     
 }
-
+const help = async (args: Arguments) => {
+    usage();
+}
 const apply = async (args: Arguments) => {
-    var modelDirs = args['model-dir'];
     var rules = args.rule||[];
     rules = typeof rules === 'string'?[rules]:rules;
+    var modelDirs = args['model-dir'];
     modelDirs = typeof modelDirs === 'string'?[modelDirs]:modelDirs;
     if (!modelDirs || modelDirs.length === 0){
         console.error('No model directories given');
         return -1;
+    }
+    var configDir = args['config-dir'];
+    if (!configDir){
+        console.log('No config directory given. Defaulting to _overmodel');
+        configDir = '_overmodel';
     }
     var accepts = args.accept||[]; // the list of files we accept
     accepts = typeof accepts === 'string'?[accepts]:accepts;
@@ -234,10 +244,10 @@ const apply = async (args: Arguments) => {
     // console.log(JSON.stringify(configuration, null, 2));
 
     // now we have the configuration, we need to deal with all the configuration files
-    const configurationFiles = await getConfigurationFiles();
+    const configurationFiles = await getConfigurationFiles(configDir);
     // let's see if we can compute the hashes
     var issues = configurationFiles.map(file=>{
-        const targetFile = `${file.substring(configFilesPrefix.length+1)}`;
+        const targetFile = `${file.substring(`${configDir}/files/`.length)}`;
         // console.log(`checking if ${previousFile} exists`);
         if (!existsSync(targetFile)){
             console.error(`The target file ${targetFile} doesn't even exist!!`)
@@ -251,17 +261,20 @@ const apply = async (args: Arguments) => {
     // END let's see if we can compute the hashes
     // console.log('configurationFiles', configurationFiles);
     issues = configurationFiles.map(file=>{
-        const previousFile = `${configFilesStatePrefix}${file.substring(configFilesPrefix.length)}`;
-        const targetFile = `${file.substring(configFilesPrefix.length+1)}`;
+        const previousFile = `${configDir}/.files/${file.substring(`${configDir}/files/`.length)}`;
+        // console.log('previous file', previousFile)
+        const targetFile = `${file.substring(`${configDir}/files/`.length)}`;
+        const accepted = accepts.filter(item=>item===targetFile).length>0
+        // console.log('target file', targetFile)
         // console.log(`checking if ${previousFile} exists`);
         if (!existsSync(previousFile)){
             console.warn(`There is no previous track of the file ${file}`);
         }else {
             const previousFileContents = readFileSync(previousFile, 'utf-8');
             const targetFileContents = readFileSync(targetFile, 'utf-8');
-            if (targetFileContents !== previousFileContents && accepts.filter(item=>item===targetFile).length===0){
+            if (targetFileContents !== previousFileContents && !accepted){
                 // let's see if we're accepting the file
-                console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configFilesPrefix}`)
+                console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configDir}/files`)
                 require('colors');
                 const Diff = require('diff');
                 const diff = Diff.diffChars(previousFileContents, targetFileContents);
@@ -277,8 +290,14 @@ const apply = async (args: Arguments) => {
             }
         }
         ensureDirectoryExistence(previousFile);
-        copyFileSync(targetFile, previousFile);
-        const ret = configureFile(file, configuration);
+        // if accepted we copy after, otherwise we do it before
+        if (!accepted){
+            copyFileSync(targetFile, previousFile);
+        }
+        const ret = configureFile(configDir, file, configuration);
+        if (accepted){
+            copyFileSync(targetFile, previousFile);
+        }
         return ret;
     }).filter(result => !result).length;
     if (issues > 0){
