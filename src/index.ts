@@ -191,15 +191,14 @@ function renderContent(contents: string, configuration):RenderResult {
     configMatches.map((match) => {
         // this match is like {{foo.bar}}
         const variable = (match.match(/\{{([^}]+)\}}/) || [''])[1];
-        var value = '';
+        var value = '--==--';
         const toEval = `value=configuration.${variable}.value`;
-        // console.log('toEval', toEval);
         try{
             eval(toEval);
         }catch (e){}
         // we recursively decode the value itself too
         var depth=0;
-        while (depth<10 && value.match(/\{{([^}]+)\}}/g)){
+        while (typeof value !== 'undefined' && value !== '--==--' && depth<10 && value.match(/\{{([^}]+)\}}/g)){
             const valueRender = renderContent(value, configuration);
             if (valueRender.missingVariables.length > 0){
                 missingVariables.push(...valueRender.missingVariables);
@@ -210,7 +209,7 @@ function renderContent(contents: string, configuration):RenderResult {
             depth++; 
         }
         // END we recursively decode the value itself too
-        if (value) {
+        if (typeof value !== 'undefined' && value !== '--==--') {
             try{
                 eval(`contentsRendered = contentsRendered.replace(/${match}/gi, value)`);
             }catch (e){}
@@ -222,15 +221,14 @@ function renderContent(contents: string, configuration):RenderResult {
     return {missingVariables, contentsRendered};
 }
 
-function configureFile(configDir: string, file: string, configuration):boolean {
-    const contents = readFileSync(file, 'utf-8');
+function configureFile(configDir: string, configFile: string, targetFile: string, configuration):boolean {
+    const contents = readFileSync(configFile, 'utf-8');
     const {missingVariables, contentsRendered} = renderContent(contents, configuration);
     if (missingVariables.length>0){
         console.log('contentsRendered', contentsRendered);
-        console.error(`Can't configure ${file}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
+        console.error(`Can't configure ${targetFile}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
         return false;
     }
-    const targetFile = file.substring(`${configDir}/files/`.length);
     writeFileSync(targetFile, contentsRendered);
     return true;
     
@@ -261,57 +259,72 @@ const apply = async (args: Arguments) => {
 
     // now we have the configuration, we need to deal with all the configuration files
     const configurationFiles = await getConfigurationFiles(configDir);
-    // let's see if we can compute the hashes
-    var issues = configurationFiles.map(file=>{
-        const targetFile = `${file.substring(`${configDir}/files/`.length)}`;
-        // console.log(`checking if ${previousFile} exists`);
-        if (!existsSync(targetFile)){
-            console.error(`The target file ${targetFile} doesn't even exist!!`)
-            return false;
-        }
-        return true;
-    }).filter(result => !result).length;
-    if (issues > 0){
-        return -2;
-    }
+    
+    // // let's see if we can compute the hashes
+    // var issues = configurationFiles.map(file=>{
+    //     const targetFile = `${file.substring(`${configDir}/files/`.length)}`;
+    //     // console.log(`checking if ${previousFile} exists`);
+    //     if (!existsSync(targetFile)){
+    //         console.warn(`The target file ${targetFile} doesn't exist!!`)
+    //         return false;
+    //     }
+    //     return true;
+    // }).filter(result => !result).length;
+    // if (issues > 0){
+    //     return -2;
+    // }
     // END let's see if we can compute the hashes
     // console.log('configurationFiles', configurationFiles);
-    issues = configurationFiles.map(file=>{
-        const previousFile = `${configDir}/.files/${file.substring(`${configDir}/files/`.length)}`;
-        // console.log('previous file', previousFile)
-        const targetFile = `${file.substring(`${configDir}/files/`.length)}`;
+    const issues = configurationFiles.map(file=>{
+        // now we decode the path itself, it may contain variables
+        const {contentsRendered, missingVariables} = renderContent(file, configuration);
+        if (missingVariables.length>0){
+            console.log('contentsRendered', contentsRendered);
+            console.error(`Can't decode the name of the file ${file}. The following variables are't decoded for the given rules: `, JSON.stringify(missingVariables));
+            process.exit(-2);
+        }
+        const fileDecoded = contentsRendered;
+        const previousFile = `${configDir}/.files/${fileDecoded.substring(`${configDir}/files/`.length)}`;
+        const targetFile = `${fileDecoded.substring(`${configDir}/files/`.length)}`;
+        
         const accepted = accepts.filter(item=>item===targetFile).length>0
-        // console.log('target file', targetFile)
-        // console.log(`checking if ${previousFile} exists`);
+        const existsTarget = existsSync(targetFile);
         if (!existsSync(previousFile)){
-            console.warn(`There is no previous track of the file ${file}`);
+            console.warn(`There is no previous track of the file ${fileDecoded}`);
         }else {
-            const previousFileContents = readFileSync(previousFile, 'utf-8');
-            const targetFileContents = readFileSync(targetFile, 'utf-8');
-            if (targetFileContents !== previousFileContents && !accepted){
-                // let's see if we're accepting the file
-                console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configDir}/files`)
-                require('colors');
-                const Diff = require('diff');
-                const diff = Diff.diffChars(previousFileContents, targetFileContents);
-                diff.forEach((part) => {
-                    // green for additions, red for deletions
-                    // grey for common parts
-                    const color = part.added ? 'green' :
-                      part.removed ? 'red' : 'grey';
-                    process.stderr.write(part.value[color]);
-                  });
-                console.log();
-                return false;
+            if (!existsTarget){
+                console.warn(`The file ${targetFile} doesn't exist`);
+            }else {
+                const previousFileContents = readFileSync(previousFile, 'utf-8');
+                const targetFileContents = readFileSync(targetFile, 'utf-8');
+                if (targetFileContents !== previousFileContents && !accepted){
+                    // let's see if we're accepting the file
+                    console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configDir}/files`)
+                    require('colors');
+                    const Diff = require('diff');
+                    const diff = Diff.diffChars(previousFileContents, targetFileContents);
+                    diff.forEach((part) => {
+                        // green for additions, red for deletions
+                        // grey for common parts
+                        const color = part.added ? 'green' :
+                        part.removed ? 'red' : 'grey';
+                        process.stderr.write(part.value[color]);
+                    });
+                    console.log();
+                    return false;
+                }
             }
         }
         ensureDirectoryExistence(previousFile);
+        if (!existsTarget){
+            ensureDirectoryExistence(targetFile);
+        }
         // if accepted we copy after, otherwise we do it before
-        if (!accepted){
+        if (existsTarget && !accepted){
             copyFileSync(targetFile, previousFile);
         }
-        const ret = configureFile(configDir, file, configuration);
-        if (accepted){
+        const ret = configureFile(configDir, file, targetFile, configuration);
+        if (existsTarget && accepted){
             copyFileSync(targetFile, previousFile);
         }
         return ret;
