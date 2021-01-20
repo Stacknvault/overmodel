@@ -295,3 +295,29 @@ Imagine we'd like to define the tool we eat our fruit with, but we want it to be
     favorite.fruit.size=Big
     favorite.fruit.tool=My own hands
     favorite.fruit.tool._metadata.description=Yeah, so what??
+
+## Variable file names
+
+File names can contain variables. This way they get written with their decoded values to the target. For example:
+
+
+`../config-dir/myapp/files/etc/config.{{environment.name}}.json`
+
+We would define a new variable named _environment.name_:
+
+**model-dir-open/model/environment/test.properties**
+
+    environment.name=Test
+    favorite.fruit.tool=Plastic crappy knife
+
+**model-dir-open/model/environment/ci.properties**
+
+    environment.name=CI
+    favorite.fruit.tool=Virtual knife
+
+**model-dir-open/model/environment/production.properties**
+
+    environment.name=Production
+    favorite.fruit.tool=Silver knife
+
+If we apply the configuration with _--rule=Production_ the file would get written into `etc/config.Production.json`
