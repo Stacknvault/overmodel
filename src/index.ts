@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import YAML from 'yaml';
-import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, lstatSync } from "fs";
 import properties from 'dot-properties';
 import { dirname } from 'path';
 
@@ -132,6 +132,11 @@ const parseProperties = (contents: string) => {
 }
 async function getModelFiles(modelDirs: string[]) {
     return (await Promise.all(modelDirs.map(async (modelDir: string) => {
+        if (!existsSync(modelDir) || !lstatSync(modelDir).isDirectory()){
+            console.error(`The model directory ${modelDir} does not exist or it's not a directory`);
+            process.exit(-2);
+            return;
+        }
         const files = await walkDir(modelDir) as string[];
         return files.map((file: string) => ({ root: modelDir, file: file.substring(modelDir.length + 1) } as ModelFile));
     }))).flatMap(item => item)
@@ -147,6 +152,11 @@ async function getModelFiles(modelDirs: string[]) {
         }) as ModelFile[];
 }
 async function getConfigurationFiles(configDir: string) {
+    if (!existsSync(`${configDir}/files`) || !lstatSync(`${configDir}/files`).isDirectory()){
+        console.error(`The config directory ${configDir}/files does not exist or it's not a directory`);
+        process.exit(-2);
+        return [];
+    }
     return  await walkDir(`${configDir}/files`) as string[];
 }
 function getConfiguration(files: ModelFile[], rules: string[]) {
