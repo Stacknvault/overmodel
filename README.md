@@ -161,7 +161,7 @@ He said Big because he likes big apples. He pushes the changes and the CI script
 
 The output:
 
-        The contents of etc/config.json changed since last time configuration was applied. Can't continue. Please model that file afain under ../config-dir/myapp/files
+        The contents of etc/config.json changed since last time configuration was applied. Can't continue. Please model that file again under ../config-dir/myapp/files
     
     {
     

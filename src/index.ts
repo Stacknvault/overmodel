@@ -3,7 +3,7 @@ import YAML from 'yaml';
 import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, lstatSync } from "fs";
 import properties from 'dot-properties';
 import { dirname } from 'path';
-
+import gitStatus from 'git-status';
 // import Mustache from 'mustache';
 interface Command {
     name: string;
@@ -299,7 +299,7 @@ const apply = async (args: Arguments) => {
                 const targetFileContents = readFileSync(targetFile, 'utf-8');
                 if (targetFileContents !== previousFileContents && !accepted){
                     // let's see if we're accepting the file
-                    console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file afain under ${configDir}/files`)
+                    console.error(`The contents of ${targetFile} changed since last time configuration was applied. Can't continue. Please model that file again under ${configDir}/files`)
                     require('colors');
                     const Diff = require('diff');
                     const diff = Diff.diffChars(previousFileContents, targetFileContents);
@@ -367,5 +367,17 @@ const overmodel = async () => {
         console.log('Configuration successfully applied');
     }
 }
-overmodel();
+gitStatus((err, data) => {
+    // console.log('gitStatus\n', err || data);
+    const errorPresent = err && !`${err}`.trim().startsWith('fatal: not a git repository (or any of the parent directories): .git')
+    if (errorPresent){
+        console.error(err);
+        process.exit(-5);
+    }
+    if (data.length > 0 ){
+        console.error('There are changes in the repository, if they come from the previous run of overmodel please discard them. Otherwise commit the changes first.');
+        process.exit(-2);
+    }
+    overmodel();
+});
 
