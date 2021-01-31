@@ -368,7 +368,6 @@ const overmodel = async () => {
     }
 }
 gitStatus((err, data) => {
-    // console.log('gitStatus\n', err || data);
     const errorPresent = err && !`${err}`.trim().startsWith('fatal: not a git repository (or any of the parent directories): .git')
     if (errorPresent){
         console.error(err);
@@ -376,6 +375,7 @@ gitStatus((err, data) => {
     }
     if (data.length > 0 ){
         console.error('There are changes in the repository, if they come from the previous run of overmodel please discard them. Otherwise commit the changes first.');
+        data.map(item=>console.log(`${item.y}   ${item.to}`));
         process.exit(-2);
     }
     overmodel();
